@@ -1,0 +1,31 @@
+# --- Datos y exchanges ---
+ccxt
+pandas
+numpy
+pyarrow         # para guardar parquet
+
+# --- Indicadores técnicos ---
+pandas-ta          # para indicadores técnicos (ej: RSI, MACD, etc.)
+# Alternativa más estable si pandas-ta falla: TA-Lib (requiere instalación del sistema)
+
+# --- Backtesting ---
+backtrader
+vectorbt
+
+# --- Configuración ---
+pyyaml
+python-dotenv
+
+# --- Interfaz visual (Fase 5) ---
+streamlit
+plotly
+
+# --- Utilidades ---
+tqdm
+rich
+
+# --- Calidad de código ---
+pytest
+pytest-cov
+black
+ruff

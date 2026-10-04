@@ -1,0 +1,29 @@
+// ============================================================================
+// MÓDULO: GESTIÓN DE RIESGO (copiar/pegar dentro del Builder)
+// ============================================================================
+// Este módulo asume que ya tienes definidas las variables:
+//   modo_sl_tp, sl_perc, tp_perc, atr, atr_mult_sl, atr_mult_tp
+// ============================================================================
+
+// --- Cálculo de niveles SL/TP ---
+f_sl_long(float precio_entrada, float atr_v, string modo, float sl_p, float mult) =>
+    modo == "Porcentaje" ? precio_entrada * (1 - sl_p/100) :
+     modo == "ATR"        ? precio_entrada - atr_v * mult : na
+
+f_tp_long(float precio_entrada, float atr_v, string modo, float tp_p, float mult) =>
+    modo == "Porcentaje" ? precio_entrada * (1 + tp_p/100) :
+     modo == "ATR"        ? precio_entrada + atr_v * mult : na
+
+f_sl_short(float precio_entrada, float atr_v, string modo, float sl_p, float mult) =>
+    modo == "Porcentaje" ? precio_entrada * (1 + sl_p/100) :
+     modo == "ATR"        ? precio_entrada + atr_v * mult : na
+
+f_tp_short(float precio_entrada, float atr_v, string modo, float tp_p, float mult) =>
+    modo == "Porcentaje" ? precio_entrada * (1 - tp_p/100) :
+     modo == "ATR"        ? precio_entrada - atr_v * mult : na
+
+// --- Uso ---
+sl_long  = f_sl_long(close, atr, modo_sl_tp, sl_perc, atr_mult_sl)
+tp_long  = f_tp_long(close, atr, modo_sl_tp, tp_perc, atr_mult_tp)
+sl_short = f_sl_short(close, atr, modo_sl_tp, sl_perc, atr_mult_sl)
+tp_short = f_tp_short(close, atr, modo_sl_tp, tp_perc, atr_mult_tp)

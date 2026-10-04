@@ -1,0 +1,32 @@
+// ============================================================================
+// MÓDULO: FILTRO DE TENDENCIA EMA200 (copiar/pegar dentro del Builder)
+// ============================================================================
+
+usar_filtro    = input.bool(false, "Activar filtro EMA", group = "Filtro Tendencia")
+filtro_periodo = input.int(200, "Periodo EMA filtro", minval = 10, group = "Filtro Tendencia")
+modo_filtro    = input.string("Solo largos con tendencia alcista", "Modo filtro",
+     options = ["Solo largos con tendencia alcista", "Solo cortos con tendencia bajista", "Ambos"],
+     group = "Filtro Tendencia")
+
+ema_filtro        = ta.ema(close, filtro_periodo)
+tendencia_alcista = not usar_filtro or close > ema_filtro
+tendencia_bajista = not usar_filtro or close < ema_filtro
+
+filtro_ok_long = switch modo_filtro
+    "Solo largos con tendencia alcista" => tendencia_alcista
+    "Solo cortos con tendencia bajista" => tendencia_bajista
+    "Ambos"                             => true
+    => true
+
+filtro_ok_short = switch modo_filtro
+    "Solo largos con tendencia alcista" => true
+    "Solo cortos con tendencia bajista" => tendencia_bajista
+    "Ambos"                             => true
+    => true
+
+// Uso: aplicar a las señales
+// longCond  := longCond  and filtro_ok_long
+// shortCond := shortCond and filtro_ok_short
+
+// Visualización
+plot(usar_filtro ? ema_filtro : na, "EMA Filtro", color.new(color.purple, 0), linewidth = 2)

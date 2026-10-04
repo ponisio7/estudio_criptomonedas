@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Datos (no subir datasets pesados)
+data/raw/*
+data/processed/*
+data/resultados/*
+!data/**/.gitkeep
+
+# Entornos y secretos
+.env
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# TradingView (backups locales)
+pine/*.bak

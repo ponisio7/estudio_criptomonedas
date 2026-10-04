@@ -1,0 +1,52 @@
+// ============================================================================
+// MÓDULO: PANEL INFORMATIVO (copiar/pegar dentro del Builder)
+// ============================================================================
+// Requiere haber definido antes: tipo_estrategia, modo_operacion, rsi,
+// rsi_sobrec, rsi_sobrev, ema_filtro, longCond, shortCond, atr, usar_filtro
+// ============================================================================
+
+mostrar_panel = input.bool(true, "Mostrar panel", group = "Panel")
+panel_pos     = input.string("Top Right", "Posición",
+     options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"],
+     group = "Panel")
+
+var table panel = table.new(
+     position = panel_pos == "Top Right"    ? position.top_right :
+                panel_pos == "Top Left"     ? position.top_left :
+                panel_pos == "Bottom Right" ? position.bottom_right :
+                                              position.bottom_left,
+     columns = 2, rows = 8,
+     border_width = 1, frame_color = color.gray, frame_width = 1)
+
+if mostrar_panel and barstate.islast
+    table.cell(panel, 0, 0, "Builder Cripto PRO", bgcolor = color.new(color.blue, 60), text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 0, syminfo.ticker,       bgcolor = color.new(color.blue, 60), text_color = color.white, text_size = size.small)
+
+    table.cell(panel, 0, 1, "Estrategia",   text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 1, tipo_estrategia, text_color = color.yellow, text_size = size.small)
+
+    table.cell(panel, 0, 2, "Modo",         text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 2, modo_operacion, text_color = color.aqua,  text_size = size.small)
+
+    table.cell(panel, 0, 3, "RSI",          text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 3, str.tostring(rsi, "#.##"),
+         text_color = rsi > rsi_sobrec ? color.red : rsi < rsi_sobrev ? color.green : color.gray,
+         text_size = size.small)
+
+    table.cell(panel, 0, 4, "Tendencia",    text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 4, close > ema_filtro ? "Alcista" : "Bajista",
+         text_color = close > ema_filtro ? color.green : color.red,
+         text_size = size.small)
+
+    table.cell(panel, 0, 5, "Última señal", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 5, longCond ? "LONG" : shortCond ? "SHORT" : "—",
+         text_color = longCond ? color.green : shortCond ? color.red : color.gray,
+         text_size = size.small)
+
+    table.cell(panel, 0, 6, "ATR",          text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 6, str.tostring(atr, "#.####"), text_color = color.gray, text_size = size.small)
+
+    table.cell(panel, 0, 7, "Filtro",       text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 7, usar_filtro ? "ON" : "OFF",
+         text_color = usar_filtro ? color.green : color.gray,
+         text_size = size.small)

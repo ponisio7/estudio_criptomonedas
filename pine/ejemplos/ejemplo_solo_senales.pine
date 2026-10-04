@@ -1,0 +1,36 @@
+//@version=5
+// ============================================================================
+// EJEMPLO: Solo señales visuales (sin backtest)
+// Útil para validar una estrategia antes de operar con ella.
+// ============================================================================
+indicator("Ejemplo Solo Señales", overlay = true)
+
+// --- Inputs ---
+sma_rapida = input.int(20, "SMA Rápida")
+sma_lenta  = input.int(50, "SMA Lenta")
+rsi_len    = input.int(14, "RSI")
+rsi_compra = input.int(30, "RSI Sobreventa")
+rsi_venta  = input.int(70, "RSI Sobrecompra")
+
+// --- Indicadores ---
+sma_f = ta.sma(close, sma_rapida)
+sma_s = ta.sma(close, sma_lenta)
+rsi   = ta.rsi(close, rsi_len)
+
+// --- Señales ---
+longCond  = ta.crossover(sma_f, sma_s)  and rsi < 50
+shortCond = ta.crossunder(sma_f, sma_s) and rsi > 50
+
+// --- Visual ---
+plot(sma_f, "SMA Rápida", color.blue)
+plot(sma_s, "SMA Lenta",  color.red)
+
+plotshape(longCond,  "Long",  shape.triangleup,   location.belowbar, color.green, size = size.small, text = "L")
+plotshape(shortCond, "Short", shape.triangledown, location.abovebar, color.red,   size = size.small, text = "S")
+
+bgcolor(longCond  ? color.new(color.green, 90) : na)
+bgcolor(shortCond ? color.new(color.red, 90)   : na)
+
+// --- Alertas ---
+alertcondition(longCond,  "Señal Long",  "Long en {{ticker}}")
+alertcondition(shortCond, "Señal Short", "Short en {{ticker}}")

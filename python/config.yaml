@@ -1,0 +1,79 @@
+# ============================================================================
+# Configuración del proyecto estudio_criptomonedas
+# ============================================================================
+
+# --- Exchange por defecto ---
+exchange:
+  nombre: binance
+  mercado: spot          # spot | futures
+  testnet: false
+
+# --- Par por defecto ---
+simbolo:
+  base: BTC
+  quote: USDT
+  formato_ccxt: BTC/USDT   # ccxt usa "BTC/USDT", no "BTCUSDT"
+
+# --- Timeframes disponibles ---
+timeframes:
+  - 1m
+  - 5m
+  - 15m
+  - 1h
+  - 4h
+  - 1d
+  - 1w
+
+timeframe_default: 4h
+
+# --- Rango de datos ---
+datos:
+  desde: "2022-01-01"
+  hasta: "2024-12-31"
+  limite_velas: 1000        # ccxt limita a 1000 por llamada
+  cache_dir: "data/raw"
+  formato_cache: parquet
+
+# --- Backtest ---
+backtest:
+  capital_inicial: 10000
+  comision_pct: 0.1
+  slippage_pct: 0.05
+  qty_type: percent_of_equity
+  qty_value: 100
+  riesgo_por_operacion_pct: 2.0
+
+# --- Estrategias ---
+estrategias:
+  cruce_sma:
+    sma_rapida: 20
+    sma_lenta: 50
+  rsi_sma:
+    rsi_len: 14
+    rsi_sobrev: 30
+    rsi_sobrec: 70
+    sma_tendencia: 200
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+  bollinger:
+    longitud: 20
+    desviaciones: 2.0
+  ema_tendencia:
+    ema_rapida: 20
+    ema_lenta: 50
+
+# --- Gestión de riesgo ---
+riesgo:
+  modo: atr               # ninguno | porcentaje | atr
+  sl_pct: 2.0
+  tp_pct: 4.0
+  atr_len: 14
+  atr_mult_sl: 1.5
+  atr_mult_tp: 3.0
+
+# --- Logging ---
+logging:
+  nivel: INFO
+  archivo: "data/resultados/app.log"

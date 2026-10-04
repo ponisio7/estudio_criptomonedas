@@ -1,0 +1,17 @@
+// ============================================================================
+// MÓDULO: ALERTAS (copiar/pegar dentro del Builder)
+// ============================================================================
+// Requiere: longCond, shortCond, usar_longs, usar_shorts, sma_fast, sma_slow
+// ============================================================================
+
+// Alertas principales
+alertcondition(longCond  and usar_longs,  "Señal LONG",  "Builder Cripto: señal LONG en {{ticker}}")
+alertcondition(shortCond and usar_shorts, "Señal SHORT", "Builder Cripto: señal SHORT en {{ticker}}")
+
+// Alertas específicas Cruce SMA
+alertcondition(ta.crossover(sma_fast, sma_slow),  "Cruce SMA alcista", "Cruce SMA alcista en {{ticker}}")
+alertcondition(ta.crossunder(sma_fast, sma_slow), "Cruce SMA bajista", "Cruce SMA bajista en {{ticker}}")
+
+// Alertas específicas RSI
+alertcondition(ta.crossover(rsi, rsi_sobrev),  "RSI sale de sobreventa",  "RSI cruzó al alza {{ticker}}")
+alertcondition(ta.crossunder(rsi, rsi_sobrec), "RSI sale de sobrecompra", "RSI cruzó a la baja {{ticker}}")

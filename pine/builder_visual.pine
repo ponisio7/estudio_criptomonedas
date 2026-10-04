@@ -1,0 +1,301 @@
+//@version=5
+// ============================================================================
+// BUILDER VISUAL CRIPTO PRO
+// Autor: estudio_criptomonedas
+// Descripción: Selector visual de estrategias comunes + plantilla custom.
+//              Sin request.security. El activo se elige cambiando el ticker
+//              del gráfico. Backtest 100% fiable sobre el gráfico actual.
+// ============================================================================
+strategy("Builder Visual Cripto PRO",
+     overlay          = true,
+     initial_capital  = 10000,
+     default_qty_type = strategy.percent_of_equity,
+     default_qty_value= 100,
+     commission_type  = strategy.commission.percent,
+     commission_value = 0.1,
+     pyramiding       = 0,
+     calc_on_every_tick = false,
+     process_orders_on_close = true)
+
+// ============================================================================
+// 1. SELECTOR DE ESTRATEGIA
+// ============================================================================
+grupo_estrategia = "1️⃣ Estrategia"
+
+tipo_estrategia = input.string("Cruce SMA", "Estrategia",
+     options = ["Cruce SMA", "RSI + SMA", "MACD", "Bollinger Bands", "EMA Tendencia", "Custom"],
+     group   = grupo_estrategia,
+     tooltip = "Elige la estrategia. Todas operan sobre el activo del gráfico actual.")
+
+modo_operacion = input.string("Backtest", "Modo",
+     options = ["Backtest", "Solo señales"],
+     group   = grupo_estrategia,
+     tooltip = "Backtest: ejecuta órdenes reales en el probador. Solo señales: dibuja flechas sin operar.")
+
+usar_longs  = input.bool(true,  "Permitir Largos",  group = grupo_estrategia, inline = "dir")
+usar_shorts = input.bool(false, "Permitir Cortos",  group = grupo_estrategia, inline = "dir")
+
+// ============================================================================
+// 2. FILTRO DE TENDENCIA (EMA200 opcional)
+// ============================================================================
+grupo_filtro = "2️⃣ Filtro de Tendencia"
+
+usar_filtro   = input.bool(false, "Activar filtro EMA200", group = grupo_filtro)
+filtro_periodo= input.int(200,   "Periodo EMA filtro", minval = 10, group = grupo_filtro)
+modo_filtro   = input.string("Solo largos con tendencia alcista", "Modo filtro",
+     options = ["Solo largos con tendencia alcista", "Solo cortos con tendencia bajista", "Ambos"],
+     group   = grupo_filtro)
+
+// ============================================================================
+// 3. PARÁMETROS DE ESTRATEGIAS (todo visual, nada de código)
+// ============================================================================
+grupo_sma = "3️⃣ Cruce SMA / EMA Tendencia"
+sma_rapida_len = input.int(20, "SMA Rápida",  minval = 2, group = grupo_sma)
+sma_lenta_len  = input.int(50, "SMA Lenta",   minval = 3, group = grupo_sma)
+
+grupo_rsi = "4️⃣ RSI + SMA"
+rsi_len      = input.int(14, "Periodo RSI",       minval = 2,  group = grupo_rsi)
+rsi_sobrev   = input.int(30, "RSI Sobreventa",    minval = 1,  maxval = 50, group = grupo_rsi)
+rsi_sobrec   = input.int(70, "RSI Sobrecompra",   minval = 50, maxval = 99, group = grupo_rsi)
+rsi_sma_len  = input.int(200,"SMA de tendencia",  minval = 10, group = grupo_rsi)
+
+grupo_macd = "5️⃣ MACD"
+macd_fast   = input.int(12, "MACD Fast",   minval = 2, group = grupo_macd)
+macd_slow   = input.int(26, "MACD Slow",   minval = 3, group = grupo_macd)
+macd_signal = input.int(9,  "MACD Signal", minval = 2, group = grupo_macd)
+
+grupo_bb = "6️⃣ Bollinger Bands"
+bb_len    = input.int(20,   "Periodos BB",   minval = 5, group = grupo_bb)
+bb_mult   = input.float(2.0,"Desviaciones",  minval = 0.5, step = 0.1, group = grupo_bb)
+
+grupo_custom = "7️⃣ Estrategia Custom"
+// Condición 1
+c1_tipo = input.string("RSI < X", "Condición 1",
+     options = ["RSI < X", "RSI > X", "Precio > SMA", "Precio < SMA", "MACD cruza señal"],
+     group = grupo_custom)
+c1_valor = input.float(30, "Valor C1", group = grupo_custom)
+
+// Operador lógico
+operador = input.string("Y", "Operador lógico",
+     options = ["Y", "O"], group = grupo_custom)
+
+// Condición 2
+c2_tipo = input.string("Precio > SMA", "Condición 2",
+     options = ["RSI < X", "RSI > X", "Precio > SMA", "Precio < SMA", "MACD cruza señal"],
+     group = grupo_custom)
+c2_valor = input.float(200, "Valor C2", group = grupo_custom)
+
+custom_sma_len = input.int(50, "SMA de referencia Custom", minval = 5, group = grupo_custom)
+
+// ============================================================================
+// 4. GESTIÓN DE RIESGO
+// ============================================================================
+grupo_riesgo = "8️⃣ Gestión de Riesgo"
+
+modo_sl_tp = input.string("Porcentaje", "Modo SL/TP",
+     options = ["Ninguno", "Porcentaje", "ATR"],
+     group   = grupo_riesgo)
+
+sl_perc = input.float(2.0, "Stop Loss %",   minval = 0.1, step = 0.1, group = grupo_riesgo)
+tp_perc = input.float(4.0, "Take Profit %", minval = 0.1, step = 0.1, group = grupo_riesgo)
+
+atr_len     = input.int(14,   "Periodo ATR",       minval = 2, group = grupo_riesgo)
+atr_mult_sl = input.float(1.5,"Multiplicador SL",  minval = 0.5, step = 0.1, group = grupo_riesgo)
+atr_mult_tp = input.float(3.0,"Multiplicador TP",  minval = 0.5, step = 0.1, group = grupo_riesgo)
+
+// ============================================================================
+// 5. PANEL INFORMATIVO
+// ============================================================================
+grupo_panel = "9️⃣ Panel"
+mostrar_panel = input.bool(true, "Mostrar panel informativo", group = grupo_panel)
+panel_pos     = input.string("Top Right", "Posición",
+     options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"],
+     group = grupo_panel)
+
+// ============================================================================
+// CÁLCULO DE INDICADORES
+// ============================================================================
+sma_fast = ta.sma(close, sma_rapida_len)
+sma_slow = ta.sma(close, sma_lenta_len)
+ema_fast = ta.ema(close, sma_rapida_len)
+ema_slow = ta.ema(close, sma_lenta_len)
+
+rsi        = ta.rsi(close, rsi_len)
+rsi_sma    = ta.sma(close, rsi_sma_len)
+sma_custom = ta.sma(close, custom_sma_len)
+
+[macdLine, signalLine, _] = ta.macd(close, macd_fast, macd_slow, macd_signal)
+macd_cruce_alcista  = ta.crossover(macdLine, signalLine)
+macd_cruce_bajista  = ta.crossunder(macdLine, signalLine)
+
+bb_basis = ta.sma(close, bb_len)
+bb_dev   = bb_mult * ta.stdev(close, bb_len)
+bb_upper = bb_basis + bb_dev
+bb_lower = bb_basis - bb_dev
+
+ema_filtro = ta.ema(close, filtro_periodo)
+atr        = ta.atr(atr_len)
+
+// ============================================================================
+// FILTRO DE TENDENCIA
+// ============================================================================
+tendencia_alcista = not usar_filtro or close > ema_filtro
+tendencia_bajista = not usar_filtro or close < ema_filtro
+
+filtro_ok_long = switch modo_filtro
+    "Solo largos con tendencia alcista" => tendencia_alcista
+    "Solo cortos con tendencia bajista" => tendencia_bajista
+    "Ambos"                             => true
+    => true
+
+filtro_ok_short = switch modo_filtro
+    "Solo largos con tendencia alcista" => true
+    "Solo cortos con tendencia bajista" => tendencia_bajista
+    "Ambos"                             => true
+    => true
+
+// ============================================================================
+// LÓGICA DE LAS 6 ESTRATEGIAS
+// ============================================================================
+var string estrategia_activa = tipo_estrategia
+
+longCond  = false
+shortCond = false
+
+if tipo_estrategia == "Cruce SMA"
+    longCond  := ta.crossover(sma_fast, sma_slow)
+    shortCond := ta.crossunder(sma_fast, sma_slow)
+
+else if tipo_estrategia == "RSI + SMA"
+    longCond  := close > rsi_sma and ta.crossover(rsi, rsi_sobrev)
+    shortCond := close < rsi_sma and ta.crossunder(rsi, rsi_sobrec)
+
+else if tipo_estrategia == "MACD"
+    longCond  := macd_cruce_alcista
+    shortCond := macd_cruce_bajista
+
+else if tipo_estrategia == "Bollinger Bands"
+    longCond  := ta.crossover(close, bb_lower)
+    shortCond := ta.crossunder(close, bb_upper)
+
+else if tipo_estrategia == "EMA Tendencia"
+    longCond  := ta.crossover(ema_fast, ema_slow)
+    shortCond := ta.crossunder(ema_fast, ema_slow)
+
+else if tipo_estrategia == "Custom"
+    // Función interna para evaluar cada condición
+    f_evaluar(string tipo, float valor) =>
+        resultado = false
+        if tipo == "RSI < X"
+            resultado := rsi < valor
+        else if tipo == "RSI > X"
+            resultado := rsi > valor
+        else if tipo == "Precio > SMA"
+            resultado := close > ta.sma(close, int(valor))
+        else if tipo == "Precio < SMA"
+            resultado := close < ta.sma(close, int(valor))
+        else if tipo == "MACD cruza señal"
+            resultado := macd_cruce_alcista
+        resultado
+
+    cond1 = f_evaluar(c1_tipo, c1_valor)
+    cond2 = f_evaluar(c2_tipo, c2_valor)
+
+    señal_final = operador == "Y" ? (cond1 and cond2) : (cond1 or cond2)
+
+    longCond  := señal_final
+    shortCond := señal_final and c1_tipo == "RSI > X" // invertir para cortos si RSI sobrecompra
+
+// Aplicar filtro de tendencia
+longCond  := longCond  and filtro_ok_long
+shortCond := shortCond and filtro_ok_short
+
+// ============================================================================
+// EJECUCIÓN DE ÓRDENES
+// ============================================================================
+// Stop Loss / Take Profit en % o ATR
+calc_sl_long  = modo_sl_tp == "Porcentaje" ? close * (1 - sl_perc/100) : modo_sl_tp == "ATR" ? close - atr * atr_mult_sl : na
+calc_tp_long  = modo_sl_tp == "Porcentaje" ? close * (1 + tp_perc/100) : modo_sl_tp == "ATR" ? close + atr * atr_mult_tp : na
+calc_sl_short = modo_sl_tp == "Porcentaje" ? close * (1 + sl_perc/100) : modo_sl_tp == "ATR" ? close + atr * atr_mult_sl : na
+calc_tp_short = modo_sl_tp == "Porcentaje" ? close * (1 - tp_perc/100) : modo_sl_tp == "ATR" ? close - atr * atr_mult_tp : na
+
+// Solo operar en modo Backtest y con vela confirmada
+puede_operar = modo_operacion == "Backtest" and barstate.isconfirmed
+
+if longCond and usar_longs and puede_operar
+    strategy.entry("Long", strategy.long)
+    if modo_sl_tp != "Ninguno"
+        strategy.exit("Exit Long", from_entry = "Long", stop = calc_sl_long, limit = calc_tp_long)
+
+if shortCond and usar_shorts and puede_operar
+    strategy.entry("Short", strategy.short)
+    if modo_sl_tp != "Ninguno"
+        strategy.exit("Exit Short", from_entry = "Short", stop = calc_sl_short, limit = calc_tp_short)
+
+// ============================================================================
+// VISUALIZACIÓN
+// ============================================================================
+// Medias móviles según estrategia activa
+plot(tipo_estrategia == "Cruce SMA"      ? sma_fast : na, "SMA Rápida", color.new(color.blue, 0))
+plot(tipo_estrategia == "Cruce SMA"      ? sma_slow : na, "SMA Lenta",  color.new(color.red, 0))
+plot(tipo_estrategia == "EMA Tendencia"  ? ema_fast : na, "EMA Rápida", color.new(color.aqua, 0))
+plot(tipo_estrategia == "EMA Tendencia"  ? ema_slow : na, "EMA Lenta",  color.new(color.orange, 0))
+plot(tipo_estrategia == "Bollinger Bands"? bb_upper : na, "BB Superior", color.new(color.gray, 0))
+plot(tipo_estrategia == "Bollinger Bands"? bb_lower : na, "BB Inferior", color.new(color.gray, 0))
+plot(tipo_estrategia == "Bollinger Bands"? bb_basis : na, "BB Base",     color.new(color.yellow, 40))
+plot(usar_filtro ? ema_filtro : na, "EMA Filtro", color.new(color.purple, 0), linewidth = 2)
+
+// Flechas de señal (siempre visibles, útil para modo "Solo señales")
+plotshape(longCond  and usar_longs,  "Long Signal",  shape.triangleup,   location.belowbar, color.new(color.green, 0), size = size.small, text = "L")
+plotshape(shortCond and usar_shorts, "Short Signal", shape.triangledown, location.abovebar, color.new(color.red, 0),   size = size.small, text = "S")
+
+// Fondo tenue
+bgcolor(longCond  ? color.new(color.green, 90) : na, title = "BG Long")
+bgcolor(shortCond ? color.new(color.red, 90)   : na, title = "BG Short")
+
+// ============================================================================
+// PANEL INFORMATIVO
+// ============================================================================
+var table panel = table.new(
+     position = panel_pos == "Top Right"    ? position.top_right :
+                panel_pos == "Top Left"     ? position.top_left :
+                panel_pos == "Bottom Right" ? position.bottom_right :
+                                              position.bottom_left,
+     columns  = 2,
+     rows     = 8,
+     border_width = 1,
+     frame_color  = color.gray,
+     frame_width  = 1)
+
+if mostrar_panel and barstate.islast
+    table.cell(panel, 0, 0, "Builder Cripto PRO", bgcolor = color.new(color.blue, 60), text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 0, syminfo.ticker,       bgcolor = color.new(color.blue, 60), text_color = color.white, text_size = size.small)
+
+    table.cell(panel, 0, 1, "Estrategia", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 1, tipo_estrategia, text_color = color.yellow, text_size = size.small)
+
+    table.cell(panel, 0, 2, "Modo", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 2, modo_operacion, text_color = color.aqua, text_size = size.small)
+
+    table.cell(panel, 0, 3, "RSI", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 3, str.tostring(rsi, "#.##"), text_color = rsi > rsi_sobrec ? color.red : rsi < rsi_sobrev ? color.green : color.gray, text_size = size.small)
+
+    table.cell(panel, 0, 4, "Tendencia", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 4, close > ema_filtro ? "Alcista" : "Bajista", text_color = close > ema_filtro ? color.green : color.red, text_size = size.small)
+
+    table.cell(panel, 0, 5, "Última señal", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 5, longCond ? "LONG" : shortCond ? "SHORT" : "—", text_color = longCond ? color.green : shortCond ? color.red : color.gray, text_size = size.small)
+
+    table.cell(panel, 0, 6, "ATR", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 6, str.tostring(atr, "#.####"), text_color = color.gray, text_size = size.small)
+
+    table.cell(panel, 0, 7, "Filtro", text_color = color.white, text_size = size.small)
+    table.cell(panel, 1, 7, usar_filtro ? "ON" : "OFF", text_color = usar_filtro ? color.green : color.gray, text_size = size.small)
+
+// ============================================================================
+// ALERTAS
+// ============================================================================
+alertcondition(longCond  and usar_longs,  "Señal LONG",  "Builder Cripto: señal LONG en {{ticker}}")
+alertcondition(shortCond and usar_shorts, "Señal SHORT", "Builder Cripto: señal SHORT en {{ticker}}")
+alertcondition(ta.crossover(sma_fast, sma_slow),  "Cruce SMA alcista",  "Cruce SMA alcista en {{ticker}}")
+alertcondition(ta.crossunder(sma_fast, sma_slow), "Cruce SMA bajista",  "Cruce SMA bajista en {{ticker}}")
